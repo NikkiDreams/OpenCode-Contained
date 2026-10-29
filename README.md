@@ -1,4 +1,6 @@
-# OpenCode Dev Container
+# Coming Soon! - This Fork has not been updated yet. 
+
+## OpenCode Dev Container
 
 <!--toc:start-->
 - [OpenCode Dev Container](#opencode-dev-container)
