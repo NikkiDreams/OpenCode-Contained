@@ -46,8 +46,8 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: brockar
-          PACKAGE: opencoded
+          OWNER: nikkidreams
+          PACKAGE: opencode-contained
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
@@ -76,10 +76,11 @@ jobs:
         if: steps.check.outputs.build_needed == 'true'
         with:
           context: .
+          file: Containerfile
           push: true
           tags: |
-            ghcr.io/brockar/opencoded:${{ needs.version.outputs.version }}
-            ghcr.io/brockar/opencoded:latest
+            ghcr.io/nikkidreams/opencode-contained:${{ needs.version.outputs.version }}
+            ghcr.io/nikkidreams/opencode-contained:latest
           build-args: |
             OPENCODE_VERSION=${{ needs.version.outputs.version }}
           cache-from: type=gha
@@ -97,8 +98,8 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: brockar
-          PACKAGE: opencoded
+          OWNER: nikkidreams
+          PACKAGE: opencode-contained
           VERSION: ${{ needs.version.outputs.version }}
         run: |
           set -euo pipefail
@@ -127,11 +128,11 @@ jobs:
         if: steps.check.outputs.build_needed == 'true'
         with:
           context: .
-          file: Dockerfile.slim
+          file: Containerfile.slim
           push: true
           tags: |
-            ghcr.io/brockar/opencoded:${{ needs.version.outputs.version }}-slim
-            ghcr.io/brockar/opencoded:slim
+            ghcr.io/nikkidreams/opencode-contained:${{ needs.version.outputs.version }}-slim
+            ghcr.io/nikkidreams/opencode-contained:slim
           build-args: |
             OPENCODE_VERSION=${{ needs.version.outputs.version }}
           cache-from: type=gha

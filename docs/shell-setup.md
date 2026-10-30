@@ -9,21 +9,22 @@
 
 ## Option 1: Setup Script
 
-Run the included script to configure shell aliases for opencoded:
+Run the included script to configure shell functions for occontained:
 
 ```bash
-~/opencoded/setup_shell.sh
+~/OC_Contained/setup_shell.sh
 ```
 
-The script configures your shell for opencoded:
+The script configures your shell for occontained:
 
-1. **Shell Detection**: Detects if you use Zsh or Bash, and updates the configuration file (`~/.zshrc` or `~/.bashrc`).
-2. **Function Installation**: Creates `~/.local/bin/opencoded-functions.sh` with required Docker functions.
+1. **Shell Detection**: Detects if you use Zsh or Bash, and updates the configuration file (`~/.zshrc` or `~/.bashrc`). Fish is not supported.
+2. **Function Installation**: Creates `~/.local/bin/occontained-functions.sh` with the required Podman functions.
 3. **Auto-Sourcing**: Adds a `source` command to load these functions in new terminal sessions.
 4. **Setup Confirmation**: Prints the path of the configured file.
 
-The script sets up Docker configuration, including:
+The generated functions use Podman with host networking and:
 - User namespace mapping (creates files with your host user ID)
+- Pinned `HOME`/`XDG_*` paths (so OpenCode reads the mounted config and auth files)
 - SSH key forwarding (for Git operations inside the container)
 - Configuration persistence (saves your opencode settings)
 - Authentication token sharing (so you do not need to log in again)
@@ -39,35 +40,53 @@ source ~/.zshrc   # or ~/.bashrc
 Add these functions directly to your `~/.zshrc` or `~/.bashrc` file:
 
 ```bash
-opencoded() {
-  docker run -d \
-    --name opencoded \
+occontained() {
+  podman run -d \
+    --name occontained \
     --rm \
     --user "$(id -u):$(id -g)" \
-    -p "${OPENCODE_PORT:-4096}:4096" \
+    --network=host \
+    --memory=12g --memory-swap=15g \
+    --pids-limit=512 \
+    --cpus=6 \
+    -w /workspace \
     -v "${OPENCODE_PATH:-$(pwd)}:/workspace" \
-    -v "$HOME/.ssh/id_ed25519:/home/opencoded/.ssh/id_ed25519:ro" \
-    -v "$HOME/.config/opencode:/home/opencoded/.config/opencode" \
-    -v "$HOME/.local/share/opencode/auth.json:/home/opencoded/.local/share/opencode/auth.json" \
+    -v "$HOME/.ssh/id_ed25519:/home/occontained/.ssh/id_ed25519:ro" \
+    -v "$HOME/.config/opencode:/home/occontained/.config/opencode" \
+    -v "$HOME/.local/share/opencode/auth.json:/home/occontained/.local/share/opencode/auth.json" \
+    -e "HOME=/home/occontained" \
+    -e "XDG_CONFIG_HOME=/home/occontained/.config" \
+    -e "XDG_DATA_HOME=/home/occontained/.local/share" \
     -e "GH_TOKEN=${GH_TOKEN:-}" \
     -e "OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}" \
     -e "OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}" \
-    ghcr.io/brockar/opencoded:latest web --hostname 0.0.0.0 --port 4096
+    ghcr.io/nikkidreams/opencode-contained:latest web --hostname 0.0.0.0 --port "${OPENCODE_PORT:-4096}"
 }
 
-opencodedt() {
-  docker run -it \
+occontained_tui() {
+  podman run -it \
     --rm \
-    --name opencoded-tui \
+    --name occontained-tui \
     --user "$(id -u):$(id -g)" \
+    --network=host \
+    --memory=12g --memory-swap=15g \
+    --pids-limit=512 \
+    --cpus=6 \
+    -w /workspace \
     -v "${OPENCODE_PATH:-$(pwd)}:/workspace" \
-    -v "$HOME/.ssh/id_ed25519:/home/opencoded/.ssh/id_ed25519:ro" \
-    -v "$HOME/.config/opencode:/home/opencoded/.config/opencode" \
-    -v "$HOME/.local/share/opencode/auth.json:/home/opencoded/.local/share/opencode/auth.json" \
+    -v "$HOME/.ssh/id_ed25519:/home/occontained/.ssh/id_ed25519:ro" \
+    -v "$HOME/.config/opencode:/home/occontained/.config/opencode" \
+    -v "$HOME/.local/share/opencode/auth.json:/home/occontained/.local/share/opencode/auth.json" \
+    -e "HOME=/home/occontained" \
+    -e "XDG_CONFIG_HOME=/home/occontained/.config" \
+    -e "XDG_DATA_HOME=/home/occontained/.local/share" \
     -e "GH_TOKEN=${GH_TOKEN:-}" \
-    ghcr.io/brockar/opencoded:latest
+    ghcr.io/nikkidreams/opencode-contained:latest
 }
 ```
+
+> [!NOTE]
+> With `--network=host`, `-p` mappings are no-ops. The web port is set on the `web` command itself (`--port`).
 
 Reload your shell:
 
@@ -79,20 +98,20 @@ source ~/.zshrc   # or ~/.bashrc
 
 ```bash
 # Start web mode
-opencoded
+occontained
 
 # Start terminal mode
-opencodedt
+occontained_tui
 
 # Set a custom port
-OPENCODE_PORT=5000 opencoded
+OPENCODE_PORT=5000 occontained
 
 # Set a custom project path
-OPENCODE_PATH=/path/to/project opencoded
+OPENCODE_PATH=/path/to/project occontained
 
 # Set both port and project path
-OPENCODE_PORT=5000 OPENCODE_PATH=/path/to/project opencoded
+OPENCODE_PORT=5000 OPENCODE_PATH=/path/to/project occontained
 
 # Stop the container
-docker stop opencoded
+podman stop occontained
 ```

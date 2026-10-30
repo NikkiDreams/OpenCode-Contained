@@ -4,6 +4,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
   vim \
+  nano \
+  node \
   ripgrep \
   ca-certificates \
   curl \
@@ -26,24 +28,24 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | g
   && apt-get install -y --no-install-recommends gh \
   && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m -s /bin/bash opencoded \
+RUN useradd -m -s /bin/bash occontained \
   && mkdir -p /workspace \
-  && chown opencoded:opencoded /workspace \
-  && echo "opencoded ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+  && chown occontained:occontained /workspace \
+  && echo "occontained ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-USER opencoded
-WORKDIR /home/opencoded
+USER occontained
+WORKDIR /home/occontained
 
 ARG OPENCODE_VERSION=latest
 
-RUN mkdir -p /home/opencoded/.ssh \
-  && ssh-keyscan github.com >> /home/opencoded/.ssh/known_hosts \
-  && mkdir -p /home/opencoded/.local/share/opencode /home/opencoded/.config/opencode
+RUN mkdir -p /home/occontained/.ssh \
+  && ssh-keyscan github.com >> /home/occontained/.ssh/known_hosts \
+  && mkdir -p /home/occontained/.local/share/opencode /home/occontained/.config/opencode
 
 RUN if [ "${OPENCODE_VERSION}" = "latest" ]; then \
   curl -fsSL https://opencode.ai/install | bash; \
   else \
   curl -fsSL https://opencode.ai/install | bash -s -- --version "${OPENCODE_VERSION}"; \
   fi
-ENV PATH="/home/opencoded/.opencode/bin:${PATH}"
+ENV PATH="/home/occontained/.opencode/bin:${PATH}"
 ENTRYPOINT ["opencode"]

@@ -1,16 +1,22 @@
-# OpenCode Dev Container
+# OpenCode Contained Development Environment
+
+## Forked and Updated for Podman and Local Inference
+
+This is a forked version of [OpenCoded](https://github.com/brockar/opencoded) originally by Martin Guzman. This fork is refactored to run OpenCode in a Podman container using local models provided by a Local LLM Runtime like Strata, Ollama, LM Studio, llama.cpp or any LLM Runtime with a local API. Your models, your private environments. You can use easily use abliterated models (not recommended)) if you are really trying to be the "edgy". And ZERO tokens sucking the life out of your bank account. However if you need remote models or cannot run an LLM localy, this option is still available.
 
 <!--toc:start-->
-- [OpenCode Dev Container](#opencode-dev-container)
+- [OpenCode Contained Development Environment](#opencode-contained-development-environment)
+  - [Forked and Updated for Podman and Local Inference](#forked-and-updated-for-podman-and-local-inference)
   - [Features](#features)
   - [Quick Start](#quick-start)
     - [Clone the repository](#clone-the-repository)
     - [Prerequisites](#prerequisites)
-    - [Use Docker Compose](#use-docker-compose)
+    - [Optional Prerequisites](#optional-prerequisites)
+    - [Use Podman Compose](#use-podman-compose)
     - [Use the helper script](#use-the-helper-script)
-  - [Docker Run Examples](#docker-run-examples)
+  - [Podman Run Examples](#podman-run-examples)
     - [Web Server](#web-server)
-    - [Terminal Mode](#terminal-mode)
+    - [TUI Mode](#tui-mode)
   - [Configuration](#configuration)
     - [Helper Script Environment Variables](#helper-script-environment-variables)
     - [Volume Mounts](#volume-mounts)
@@ -21,7 +27,7 @@
 
 ![OpenCode Banner](docs/assets/banner.webp)
 
-This container runs [OpenCode](https://opencode.ai) inside Docker. You can run OpenCode in web mode or terminal mode. The container includes all dependencies and isolates your environment.
+This container runs [OpenCode](https://opencode.ai) inside Podman. You can run OpenCode in web mode or terminal mode. The container includes all dependencies and isolates your environment.
 
 ## Features
 
@@ -37,79 +43,93 @@ This container runs [OpenCode](https://opencode.ai) inside Docker. You can run O
 ### Clone the repository
 
 ```bash
-git clone https://github.com/brockar/opencoded.git ~/opencoded
-cd ~/opencoded
+git clone https://github.com/NikkiDreams/OpenCode-Contained.git ~/OC_Contained
+cd ~/OC_Contained
 ```
 
 ### Prerequisites
 
 Before you run the container, make sure you have these items:
 
+- An LLM running locally with an API endpoint like `http://127.0.0.1:8080/v1`
 - An SSH key at `~/.ssh/id_ed25519` for Git commands inside the container.
+
+### Optional Prerequisites
+
 - Configured OpenCode authentication. See the [configuration section](#configuration).
 
-### Use Docker Compose
+### Use Podman Compose
 
 Run this command:
 
 ```bash
-docker compose up -d
+podman compose up -d
 ```
 
-Open the web interface at **<http://localhost:4096>**.
+Open the web interface at **<http://localhost:4096>** (or `http://localhost:${OPENCODE_PORT}` if set).
 
 ### Use the helper script
 
 Run the helper script:
 
 ```bash
-~/opencoded/run.sh
+~/OC_Contained/run.sh
 ```
 
 To run the container for a specific project:
 
 ```bash
-PROJECT_PATH=/path/to/project ~/opencoded/run.sh
+PROJECT_PATH=/path/to/project ~/OC_Contained/run.sh
 ```
 
-## Docker Run Examples
+## Podman Run Examples
 
 ### Web Server
 
 Run the web server container:
 
 ```bash
-docker run -d \
-  --name opencoded \
+podman run -d \
+  --name occontained \
   --rm \
   --user "$(id -u):$(id -g)" \
-  -p 4096:4096 \
+  --network=host \
+  --memory=12g --memory-swap=15g \
+  --pids-limit=512 \
+  -w /workspace \
   -v $(pwd):/workspace \
-  -v ~/.ssh/id_ed25519:/home/opencoded/.ssh/id_ed25519:ro \
-  -v ~/.config/opencode:/home/opencoded/.config/opencode \
-  -v ~/.local/share/opencode/auth.json:/home/opencoded/.local/share/opencode/auth.json \
+  -v ~/.ssh/id_ed25519:/home/occontained/.ssh/id_ed25519:ro \
+  -v ~/.config/opencode:/home/occontained/.config/opencode \
+  -v ~/.local/share/opencode/auth.json:/home/occontained/.local/share/opencode/auth.json \
+  -e HOME=/home/occontained \
+  -e XDG_CONFIG_HOME=/home/occontained/.config \
+  -e XDG_DATA_HOME=/home/occontained/.local/share \
   -e GH_TOKEN=${GH_TOKEN:-} \
   -e OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode} \
   -e OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-} \
-  ghcr.io/brockar/opencoded:latest web --hostname 0.0.0.0 --port 4096
+  ghcr.io/nikkidreams/opencode-contained:latest web --hostname 0.0.0.0 --port "${OPENCODE_PORT:-4096}"
 ```
 
-Open the web interface at **<http://localhost:4096>**.
+With `--network=host`, `-p` mappings are no-ops, so the port is set on the server command. Open the web interface at **<http://localhost:4096>** (or `http://localhost:${OPENCODE_PORT}` if you set `OPENCODE_PORT`).
 
 ### TUI Mode
 
 Run OpenCode in terminal mode:
 
 ```bash
-docker run -it \
+podman run -it \
   --rm \
   --user "$(id -u):$(id -g)" \
+  -w /workspace \
   -v $(pwd):/workspace \
-  -v ~/.ssh/id_ed25519:/home/opencoded/.ssh/id_ed25519:ro \
-  -v ~/.config/opencode:/home/opencoded/.config/opencode \
-  -v ~/.local/share/opencode/auth.json:/home/opencoded/.local/share/opencode/auth.json \
+  -v ~/.ssh/id_ed25519:/home/occontained/.ssh/id_ed25519:ro \
+  -v ~/.config/opencode:/home/occontained/.config/opencode \
+  -v ~/.local/share/opencode/auth.json:/home/occontained/.local/share/opencode/auth.json \
+  -e HOME=/home/occontained \
+  -e XDG_CONFIG_HOME=/home/occontained/.config \
+  -e XDG_DATA_HOME=/home/occontained/.local/share \
   -e GH_TOKEN=${GH_TOKEN:-} \
-  ghcr.io/brockar/opencoded:latest
+  ghcr.io/nikkidreams/opencode-contained:latest
 ```
 
 This command starts the terminal interface. Press `Ctrl+C` or type `/exit` to stop the container.
@@ -118,29 +138,32 @@ This command starts the terminal interface. Press `Ctrl+C` or type `/exit` to st
 
 ### Helper Script Environment Variables
 
-| Variable | Description | Default |
-| ---------- | ------------- | --------- |
-| `PROJECT_PATH` | Path to project directory | `$(pwd)` |
-| `OPENCODE_PORT` | Host port to expose | `4096` |
-| `UID` | User ID for file permissions | `$(id -u)` |
-| `GID` | Group ID for file permissions | `$(id -g)` |
+| Variable        | Description                     | Default    |
+| --------------- | ------------------------------- | ---------- |
+| `PROJECT_PATH`  | Path to project directory       | `$(pwd)`   |
+| `OPENCODE_PORT` | Host port to expose             | `4096`     |
+| `OC_IMAGE`      | Container image to run          | `ghcr.io/nikkidreams/opencode-contained:latest` |
+| `CUSTOM_UID`    | User ID for file permissions    | `$(id -u)` |
+| `CUSTOM_GID`    | Group ID for file permissions   | `$(id -g)` |
 
 ### Volume Mounts
 
 The container mounts these volumes:
 
 - Project directory: `/workspace`
-- `~/.ssh/id_ed25519`: SSH key for Git operations
-- `~/.config/opencode`: OpenCode settings
-- `~/.local/share/opencode/auth.json`: OpenCode authentication file
+- `~/.ssh/id_ed25519`: SSH key for Git operations (mounted to `/home/occontained/.ssh`)
+- `~/.config/opencode`: OpenCode settings (mounted to `/home/occontained/.config/opencode`)
+- `~/.local/share/opencode/auth.json`: OpenCode authentication file (mounted to `/home/occontained/.local/share/opencode`)
+
+The example commands set `HOME`, `XDG_CONFIG_HOME`, and `XDG_DATA_HOME` to `/home/occontained`. This is required: when running with `--user`, the host UID is usually not in the image's `/etc/passwd`, so the container `HOME` falls back to `/` and OpenCode would never see the mounts. Keep these env vars aligned with the mount targets.
 
 > [!TIP]
 > **Save session history:** The container mounts `auth.json` by default. Mount the full directory to save conversation history:
 >
 > ```bash
-> -v ~/.local/share/opencode:/home/opencoded/.local/share/opencode
+> -v ~/.local/share/opencode:/home/occontained/.local/share/opencode
 > ```
-
+>
 > [!TIP]
 > **Mount your parent code directory:** Mount your `~/code` directory as the workspace. This allows you to open any project in the web interface without restarting the container:
 >
@@ -152,35 +175,35 @@ The container mounts these volumes:
 
 ### Environment Variables
 
-| Variable | Description | Default |
-| ---------- | ------------- | --------- |
-| `GH_TOKEN` | GitHub token (optional) | - |
+| Variable                   | Description                               | Default    |
+| -------------------------- | ----------------------------------------- | ---------- |
+| `GH_TOKEN`                 | GitHub token (optional)                   | -          |
 | `OPENCODE_SERVER_USERNAME` | Username for web interface authentication | `opencode` |
-| `OPENCODE_SERVER_PASSWORD` | Password for web interface authentication | - |
+| `OPENCODE_SERVER_PASSWORD` | Password for web interface authentication | -          |
 
 ## Shell Alias
 
 Run the setup script to configure shell aliases automatically. The script detects Zsh or Bash:
 
 ```bash
-~/opencoded/setup_shell.sh
+~/OC_Contained/setup_shell.sh
 ```
 
 Reload your shell after the script finishes. See the [shell setup guide](docs/shell-setup.md) for manual setup steps.
 
 ## Customize the Container Image
 
-To add packages to the standard image, edit `Dockerfile`:
+To add packages to the standard image, edit `Containerfile`:
 
-```dockerfile
+```containerfile
 RUN apt-get update && apt-get install -y --no-install-recommends \
   your-package-here \
   && rm -rf /var/lib/apt/lists/*
 ```
 
-To add packages to the slim image, edit `Dockerfile.slim`:
+To add packages to the slim image, edit `Containerfile.slim`:
 
-```dockerfile
+```containerfile
 RUN apk add --no-cache your-package-here
 ```
 
@@ -188,9 +211,9 @@ Rebuild the image locally:
 
 ```bash
 # Standard image
-docker build -t ghcr.io/brockar/opencoded:latest .
+podman build -t ghcr.io/nikkidreams/opencode-contained:latest .
 # Slim image
-docker build -f Dockerfile.slim -t ghcr.io/brockar/opencoded:slim .
+podman build -f Containerfile.slim -t ghcr.io/nikkidreams/opencode-contained:slim .
 ```
 
 > [!NOTE]

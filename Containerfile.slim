@@ -28,19 +28,19 @@ RUN apk add --no-cache \
   procps \
   github-cli
 
-RUN adduser -D -s /bin/bash opencoded \
+RUN adduser -D -s /bin/bash occontained \
   && mkdir -p /workspace \
-  && chown opencoded:opencoded /workspace \
-  && echo "opencoded ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+  && chown occontained:occontained /workspace \
+  && echo "occontained ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-USER opencoded
-WORKDIR /home/opencoded
+USER occontained
+WORKDIR /home/occontained
 
 ARG OPENCODE_VERSION=latest
 
-RUN mkdir -p /home/opencoded/.ssh \
-  && ssh-keyscan github.com >> /home/opencoded/.ssh/known_hosts \
-  && mkdir -p /home/opencoded/.local/share/opencode /home/opencoded/.config/opencode
+RUN mkdir -p /home/occontained/.ssh \
+  && ssh-keyscan github.com >> /home/occontained/.ssh/known_hosts \
+  && mkdir -p /home/occontained/.local/share/opencode /home/occontained/.config/opencode
 
 RUN if [ "${OPENCODE_VERSION}" = "latest" ]; then \
   curl -fsSL https://opencode.ai/install | bash; \
@@ -48,5 +48,5 @@ RUN if [ "${OPENCODE_VERSION}" = "latest" ]; then \
   curl -fsSL https://opencode.ai/install | bash -s -- --version "${OPENCODE_VERSION}"; \
   fi
 
-ENV PATH="/home/opencoded/.opencode/bin:${PATH}"
+ENV PATH="/home/occontained/.opencode/bin:${PATH}"
 ENTRYPOINT ["opencode"]
