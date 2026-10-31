@@ -131,7 +131,7 @@ With `--network=host`, `-p` mappings are no-ops, so the port and the bind addres
 Local LLM APIs still work with a loopback bind: host networking shares the host's loopback, so the container reaches `http://127.0.0.1:8080/v1` the same way it always did. To let another machine open the interface, bind every interface deliberately:
 
 ```bash
-export OPENCODE_SERVER_PASSWORD='your-password'   # avoids leaking it into `ps`
+read -rs OPENCODE_SERVER_PASSWORD && export OPENCODE_SERVER_PASSWORD   # type it blind: out of `ps` and history
 OPENCODE_BIND=0.0.0.0 ~/OC_Contained/run.sh
 ```
 
@@ -175,6 +175,12 @@ Web mode always runs behind a login, and it binds `127.0.0.1` unless you ask oth
 | `podman run ... web ...` | exported shell variable (the example exports it with `${VAR:?...}` before running) | bash stops you before `podman run` executes |
 
 Keep secret values out of command lines: pass podman a bare `-e OPENCODE_SERVER_PASSWORD` (podman inherits the exported value) instead of `-e OPENCODE_SERVER_PASSWORD=...`, and export variables on their own line instead of prefixing them to a command. Values written on a command line appear in the process argv, which any local user can read with `ps`, and stay in your shell history. Container environment values remain visible to `podman inspect`; that is inherent to containers, but they are no longer exposed through `ps` or history.
+
+Exporting a literal password on its own line still keeps the typed text out of argv, but the line itself is recorded verbatim in your shell history (`export OPENCODE_SERVER_PASSWORD='hunter2'` ends up in `~/.bash_history`). To keep the value out of history too:
+
+- keep it in `.env`, which is never echoed into history (recommended),
+- enter it without echoing: `read -rs OPENCODE_SERVER_PASSWORD && export OPENCODE_SERVER_PASSWORD`,
+- or prefix the export with a space while `HISTCONTROL=ignorespace` is set (the default in many Bash setups), which keeps the line out of history.
 
 Generate a password once and keep it out of git (`.env` is git-ignored):
 
