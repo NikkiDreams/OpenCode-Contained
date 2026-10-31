@@ -1,51 +1,59 @@
 {
     "$schema": "https://opencode.ai/config.json",
-    "model": "strata/swift-1.5-iq3_xxs",
-    "small_model": "strata/swift-1.5-iq3_xxs",
-    "autoupdate": false,
+    "update": "notify",
+    "shell": "/usr/bin/bash",
+    "share": "disabled",
     "compaction": {
         "auto": true,
-        "buffer": 60548
+        "buffer": "20%",
+        "keep": {
+            "tokens": 24000
+        }
     },
-    "share": "disabled",
-    "provider": {
+    "providers": {
         "strata": {
-            "npm": "@ai-sdk/openai-compatible",
             "name": "Strata (local)",
-            "options": {
+            "package": "@ai-sdk/openai-compatible",
+            "settings": {
                 "baseURL": "http://127.0.0.1:8080/v1",
-                "apiKey": "{env:STRATA_API_KEY)}"
+                "apiKey": "{env:STRATA_API_KEY}"
             },
             "models": {
                 "swift-1.5-iq3_xxs": {
                     "name": "Swift 1.5 iq3_xxs(local)",
-                    "tool_call": true,
-                    "reasoning": true,
-                    "limit": {
-                        "context": 131072,
-                        "input": 126976,
-                        "output": 4096
-                    }
+                    "settings": {
+                        "tool_call": true,
+                        "reasoning": true,
+                        "limit": {
+                            "context": 131072,
+                            "input": 126976,
+                            "output": 4096
+                        }
+                    },
                 },
                 "qwen3.8-flash-next-coder-iq1_m": {
                     "name": "Qwen3.8 iq1_m Coder (local)",
-                    "tool_call": true,
-                    "reasoning": true,
-                    "limit": {
-                        "context": 131072,
-                        "input": 126976,
-                        "output": 4096
-                    }
+                    "settings": {
+                        "tool_call": true,
+                        "reasoning": true,
+                        "limit": {
+                            "context": 131072,
+                            "input": 126976,
+                            "output": 4096
+                        }
+                    },
                 },
                 "qwen3.8-flash-next-iq3_xxs": {
                     "name": "Qwen3.8-Flash-Next (local)",
-                    "tool_call": true,
-                    "reasoning": true,
-                    "limit": {
-                        "context": 131072,
-                        "input": 126976,
-                        "output": 4096
-                    }
+                    "settings": {
+                        "tool_call": true,
+                        "reasoning": true,
+                        "limit": {
+                            "context": 131072,
+                            "input": 126976,
+                            "output": 4096
+                        }
+                    },
                 }
             }
         }
@@ -64,8 +72,9 @@
                 }
             },
             "github": {
-                "command": "npx",
-                "args": [
+                "type": "local",
+                "command": [
+                    "npx",
                     "-y",
                     "@modelcontextprotocol/server-github"
                 ]
