@@ -101,7 +101,7 @@ Run the web server container:
 # Export secrets before running so their values never appear in the podman
 # process argv (visible in `ps`) or in the command line you typed. The
 # `:?` guard stops here if no password is set.
-export GH_TOKEN="${GH_TOKEN:-}"
+if [ -n "${GH_TOKEN:-}" ]; then export GH_TOKEN; fi   # exported only when set
 export OPENCODE_SERVER_USERNAME="${OPENCODE_SERVER_USERNAME:-opencode}"
 export OPENCODE_SERVER_PASSWORD="${OPENCODE_SERVER_PASSWORD:?web mode requires a password}"
 
@@ -142,7 +142,7 @@ Anyone on your network can reach `0.0.0.0`, so keep a strong password and only s
 Run OpenCode in terminal mode:
 
 ```bash
-export GH_TOKEN="${GH_TOKEN:-}"   # keeps the token out of `ps` (argv)
+if [ -n "${GH_TOKEN:-}" ]; then export GH_TOKEN; fi   # exported only when set, keeps the token out of `ps` (argv)
 
 podman run -it \
   --rm \

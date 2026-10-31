@@ -58,7 +58,9 @@ fi
 # linger in shell history when typed inline. Exporting keeps the values in
 # this shell's environment only. (They remain visible in `podman inspect`;
 # that is inherent to containers and not reachable from `ps`.)
-export GH_TOKEN="${GH_TOKEN:-}"
+# GH_TOKEN is exported only when set: podman passes an unset variable
+# through as absent, which is better than handing the container an empty token.
+if [ -n "${GH_TOKEN:-}" ]; then export GH_TOKEN; fi
 export OPENCODE_SERVER_USERNAME="$SERVER_USERNAME"
 export OPENCODE_SERVER_PASSWORD
 

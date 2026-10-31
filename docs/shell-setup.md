@@ -52,7 +52,9 @@ occontained() {
   # Secrets are passed to podman as bare `-e NAME` (inherited from this
   # shell's environment) instead of `-e NAME=value`: command-line values land
   # in the podman process argv, readable by any local user through `ps`.
-  export GH_TOKEN="${GH_TOKEN:-}"
+  # GH_TOKEN is exported only when set: an exported empty value would
+  # clutter this shell, and podman passes unset variables through as absent.
+  if [ -n "${GH_TOKEN:-}" ]; then export GH_TOKEN; fi
   export OPENCODE_SERVER_USERNAME="${OPENCODE_SERVER_USERNAME:-opencode}"
   export OPENCODE_SERVER_PASSWORD
   podman run -d \
@@ -79,7 +81,7 @@ occontained() {
 
 occontained_tui() {
   # Same bare `-e NAME` inheritance as occontained: keep secrets out of argv.
-  export GH_TOKEN="${GH_TOKEN:-}"
+  if [ -n "${GH_TOKEN:-}" ]; then export GH_TOKEN; fi
   podman run -it \
     --rm \
     --name occontained-tui \

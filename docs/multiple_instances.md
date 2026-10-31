@@ -9,7 +9,7 @@ Each instance needs a unique container name, a unique port (set on the `web` com
 # argv (visible in `ps`). The `:?` guard stops before the runs below if no
 # password is set. To use a different password per instance, re-export it
 # between runs.
-export GH_TOKEN="${GH_TOKEN:-}"
+if [ -n "${GH_TOKEN:-}" ]; then export GH_TOKEN; fi   # exported only when set
 export OPENCODE_SERVER_PASSWORD="${OPENCODE_SERVER_PASSWORD:?web mode requires a password}"
 
 # Instance 1: Project A on port 4096
