@@ -1,6 +1,7 @@
 .git
 .gitignore
 .gitattributes
+.env
 
 .DS_Store
 *.log

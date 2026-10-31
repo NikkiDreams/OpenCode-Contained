@@ -1,10 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Load .env from this script's directory when present (the same file Podman
+# Compose reads automatically). Everything in it is exported so the defaults
+# below can pick the values up.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$SCRIPT_DIR/.env"
+  set +a
+fi
+
 ### VARIABLES
 HOST_UID="${CUSTOM_UID:-$(id -u)}"
 HOST_GID="${CUSTOM_GID:-$(id -g)}"
 PORT="${OPENCODE_PORT:-4096}"
+# Bind to loopback by default. With --network=host the container shares the
+# host's network namespace, so a server bound to 0.0.0.0 is reachable from
+# every device on the LAN. Outbound access to local LLM APIs is NOT affected:
+# host networking also shares the host's loopback, so the container can still
+# reach http://127.0.0.1:<llm-port>. Set OPENCODE_BIND=0.0.0.0 deliberately if
+# you want the web UI reachable from another machine.
+BIND="${OPENCODE_BIND:-127.0.0.1}"
 PROJECT_PATH="${PROJECT_PATH:-$(pwd)}"
 CONTAINER_NAME="occontained"
 IMAGE="${OC_IMAGE:-ghcr.io/nikkidreams/opencode-contained:latest}"
@@ -18,7 +36,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+RED='\033[0;31m'
 NC='\033[0m'
+
+# Web mode must never start without authentication: --network=host plus a
+# server bound on a non-loopback address exposes the agent to the whole LAN.
+# Fail here instead of silently launching an open server.
+if [ -z "${OPENCODE_SERVER_PASSWORD:-}" ]; then
+  echo -e "${RED}ERROR: OPENCODE_SERVER_PASSWORD is not set; web mode would start with no authentication.${NC}" >&2
+  echo -e "Set a password first, for example:" >&2
+  echo -e "  ${CYAN}export OPENCODE_SERVER_PASSWORD=\"\$(openssl rand -hex 24)\"${NC}" >&2
+  echo -e "Or keep it stable across restarts in ${CYAN}.env${NC} (see ${CYAN}.env.example${NC}), which is git-ignored." >&2
+  echo -e "Terminal mode needs no password: ${CYAN}podman run -it --rm <image>${NC} or ${CYAN}occontained_tui${NC}." >&2
+  exit 1
+fi
 
 echo -e "${BLUE}Setting up OpenCode Container environment...${NC}"
 mkdir -p ~/.config/opencode
@@ -55,7 +86,11 @@ echo -e "${BLUE}Starting OpenCode container on port $PORT...${NC}"
 
 # --network=host is intentional: it lets the container reach local LLM runtimes
 # and the internet directly. With host networking, "-p" mappings are no-ops, so
-# the port is controlled here, on the server command, not via -p.
+# both the port and the bind address are controlled here, on the server command.
+if [ "$BIND" != "127.0.0.1" ] && [ "$BIND" != "localhost" ]; then
+  echo -e "${YELLOW}WARNING: OPENCODE_BIND=$BIND exposes the web UI on your network. Anyone on the LAN can reach it (log in as ${OPENCODE_SERVER_USERNAME:-opencode}).${NC}"
+fi
+
 podman run -d \
   --name "$CONTAINER_NAME" \
   --rm \
@@ -75,11 +110,17 @@ podman run -d \
   -e "GH_TOKEN=${GH_TOKEN:-}" \
   -e "OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}" \
   -e "OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}" \
-  "$IMAGE" web --hostname 0.0.0.0 --port "$PORT"
+  "$IMAGE" web --hostname "$BIND" --port "$PORT"
 
 echo ""
 echo -e "${GREEN}OpenCode is starting!${NC}"
-echo -e "Access the web interface at: ${CYAN}http://localhost:$PORT${NC}"
+if [ "$BIND" = "127.0.0.1" ] || [ "$BIND" = "localhost" ]; then
+  echo -e "Access the web interface at: ${CYAN}http://localhost:$PORT${NC} (localhost only)"
+  echo -e "To reach it from another machine: ${CYAN}OPENCODE_BIND=0.0.0.0 ~/OC_Contained/run.sh${NC}"
+else
+  echo -e "Access the web interface at: ${CYAN}http://$BIND:$PORT${NC}"
+fi
+echo -e "Login with username ${CYAN}${OPENCODE_SERVER_USERNAME:-opencode}${NC} and your ${CYAN}OPENCODE_SERVER_PASSWORD${NC}"
 echo ""
 echo -e "${BLUE}Useful commands:${NC}"
 echo -e "  ${CYAN}podman logs -f $CONTAINER_NAME${NC}  - View logs"

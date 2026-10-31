@@ -1,0 +1,12 @@
+# Local configuration and secrets. Never commit these.
+# Copy .env.example to .env; compose and run.sh read .env from this directory.
+.env
+.env.*
+!.env.example
+
+# Editor / OS noise
+.DS_Store
+*.log
+*.tmp
+*.swp
+*~

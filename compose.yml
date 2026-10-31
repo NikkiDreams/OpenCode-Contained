@@ -15,11 +15,21 @@ services:
       XDG_DATA_HOME: /home/occontained/.local/share
       GH_TOKEN: ${GH_TOKEN:-}
       OPENCODE_SERVER_USERNAME: ${OPENCODE_SERVER_USERNAME:-opencode}
-      OPENCODE_SERVER_PASSWORD: ${OPENCODE_SERVER_PASSWORD:-}
+      # Required, no default. An empty password starts the web UI with no
+      # authentication, and `network_mode: host` would expose that open server
+      # to every device on the LAN. Put the value in your shell or in .env
+      # (see .env.example, which is git-ignored). Terminal mode does not need
+      # it: run the image directly with `podman run -it --rm <image>`.
+      OPENCODE_SERVER_PASSWORD: ${OPENCODE_SERVER_PASSWORD:?web mode requires a password - set OPENCODE_SERVER_PASSWORD in your shell or in .env (see .env.example), or use terminal mode instead}
     volumes:
       - ./:/workspace
       - ${HOME}/.ssh/id_ed25519:/home/occontained/.ssh/id_ed25519:ro
       - ${HOME}/.config/opencode:/home/occontained/.config/opencode
       - ${HOME}/.local/share/opencode/auth.json:/home/occontained/.local/share/opencode/auth.json
     network_mode: host
-    command: [ "web", "--hostname", "0.0.0.0", "--port", "${OPENCODE_PORT:-4096}" ]
+    # Bind to loopback by default: with network_mode: host the container shares
+    # the host's network namespace, so binding 0.0.0.0 publishes the agent to
+    # the LAN. Outbound calls to local LLM APIs are unaffected - host networking
+    # also shares the host's loopback, so http://127.0.0.1:<llm-port> still works.
+    # Set OPENCODE_BIND=0.0.0.0 deliberately to allow LAN access.
+    command: [ "web", "--hostname", "${OPENCODE_BIND:-127.0.0.1}", "--port", "${OPENCODE_PORT:-4096}" ]

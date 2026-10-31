@@ -18,6 +18,7 @@ This is a forked version of [OpenCoded](https://github.com/brockar/opencoded) or
     - [Web Server](#web-server)
     - [TUI Mode](#tui-mode)
   - [Configuration](#configuration)
+    - [Web authentication](#web-authentication)
     - [Helper Script Environment Variables](#helper-script-environment-variables)
     - [Volume Mounts](#volume-mounts)
     - [Environment Variables](#environment-variables)
@@ -53,6 +54,7 @@ Before you run the container, make sure you have these items:
 
 - An LLM running locally with an API endpoint like `http://127.0.0.1:8080/v1`
 - An SSH key at `~/.ssh/id_ed25519` for Git commands inside the container.
+- A web interface password in `OPENCODE_SERVER_PASSWORD`. Web mode refuses to start without one. See [Web authentication](#web-authentication).
 
 ### Optional Prerequisites
 
@@ -60,17 +62,24 @@ Before you run the container, make sure you have these items:
 
 ### Use Podman Compose
 
-Run this command:
+Create a git-ignored `.env` file with a web password (`podman compose` reads `.env` from this directory automatically):
+
+```bash
+cp .env.example .env
+sed -i "s|^OPENCODE_SERVER_PASSWORD=$|OPENCODE_SERVER_PASSWORD=$(openssl rand -hex 24)|" .env
+```
+
+Then run this command:
 
 ```bash
 podman compose up -d
 ```
 
-Open the web interface at **<http://localhost:4096>** (or `http://localhost:${OPENCODE_PORT}` if set).
+Open the web interface at **<http://localhost:4096>** (or `http://localhost:${OPENCODE_PORT}` if set) and log in with `opencode` and the password from `.env`. Without `OPENCODE_SERVER_PASSWORD`, compose refuses to start rather than serving an open web UI.
 
 ### Use the helper script
 
-Run the helper script:
+`run.sh` also reads `.env` from the repository directory. Run the helper script:
 
 ```bash
 ~/OC_Contained/run.sh
@@ -106,11 +115,19 @@ podman run -d \
   -e XDG_DATA_HOME=/home/occontained/.local/share \
   -e GH_TOKEN=${GH_TOKEN:-} \
   -e OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode} \
-  -e OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-} \
-  ghcr.io/nikkidreams/opencode-contained:latest web --hostname 0.0.0.0 --port "${OPENCODE_PORT:-4096}"
+  -e OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:?web mode requires a password} \
+  ghcr.io/nikkidreams/opencode-contained:latest web --hostname "${OPENCODE_BIND:-127.0.0.1}" --port "${OPENCODE_PORT:-4096}"
 ```
 
-With `--network=host`, `-p` mappings are no-ops, so the port is set on the server command. Open the web interface at **<http://localhost:4096>** (or `http://localhost:${OPENCODE_PORT}` if you set `OPENCODE_PORT`).
+With `--network=host`, `-p` mappings are no-ops, so the port and the bind address are set on the server command. The server binds `127.0.0.1` by default, so open **<http://localhost:4096>** (or `http://localhost:${OPENCODE_PORT}` if you set `OPENCODE_PORT`) and log in with `opencode` plus `OPENCODE_SERVER_PASSWORD`.
+
+Local LLM APIs still work with a loopback bind: host networking shares the host's loopback, so the container reaches `http://127.0.0.1:8080/v1` the same way it always did. To let another machine open the interface, bind every interface deliberately:
+
+```bash
+OPENCODE_BIND=0.0.0.0 OPENCODE_SERVER_PASSWORD='your-password' ~/OC_Contained/run.sh
+```
+
+Anyone on your network can reach `0.0.0.0`, so keep a strong password and only set `OPENCODE_BIND` when you need it.
 
 ### TUI Mode
 
@@ -136,12 +153,32 @@ This command starts the terminal interface. Press `Ctrl+C` or type `/exit` to st
 
 ## Configuration
 
+### Web authentication
+
+Web mode always runs behind a login, and it binds `127.0.0.1` unless you ask otherwise. `OPENCODE_SERVER_PASSWORD` has no default, so every entry point stops before starting an open server:
+
+| Entry point | Where the password comes from | Behaviour when unset |
+| --- | --- | --- |
+| `run.sh` | shell environment, or `.env` in the repository directory | prints an error and exits before creating a container |
+| `podman compose up -d` | shell environment, or `.env` in the repository directory | compose refuses with "web mode requires a password" |
+| `occontained` shell function | shell environment (export it in your rc file) | prints an error and returns 1 |
+| `podman run ... web ...` | `-e OPENCODE_SERVER_PASSWORD=...` | the documented example uses `${VAR:?...}`, so bash stops you |
+
+Generate a password once and keep it out of git (`.env` is git-ignored):
+
+```bash
+openssl rand -hex 24   # copy the output into .env, or export OPENCODE_SERVER_PASSWORD
+```
+
+Log in with `OPENCODE_SERVER_USERNAME` (default `opencode`) and that password. TUI mode starts no server, so it needs no password: use `occontained_tui`, or run the image with no `web` command. `.env.example` documents every supported variable.
+
 ### Helper Script Environment Variables
 
 | Variable        | Description                     | Default    |
 | --------------- | ------------------------------- | ---------- |
 | `PROJECT_PATH`  | Path to project directory       | `$(pwd)`   |
 | `OPENCODE_PORT` | Host port to expose             | `4096`     |
+| `OPENCODE_BIND` | Web UI bind address (`127.0.0.1` keeps it localhost only) | `127.0.0.1` |
 | `OC_IMAGE`      | Container image to run          | `ghcr.io/nikkidreams/opencode-contained:latest` |
 | `CUSTOM_UID`    | User ID for file permissions    | `$(id -u)` |
 | `CUSTOM_GID`    | Group ID for file permissions   | `$(id -g)` |
@@ -179,7 +216,7 @@ The example commands set `HOME`, `XDG_CONFIG_HOME`, and `XDG_DATA_HOME` to `/hom
 | -------------------------- | ----------------------------------------- | ---------- |
 | `GH_TOKEN`                 | GitHub token (optional)                   | -          |
 | `OPENCODE_SERVER_USERNAME` | Username for web interface authentication | `opencode` |
-| `OPENCODE_SERVER_PASSWORD` | Password for web interface authentication | -          |
+| `OPENCODE_SERVER_PASSWORD` | Password for web interface authentication | **required for web mode** |
 
 ## Shell Alias
 

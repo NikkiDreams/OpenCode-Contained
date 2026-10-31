@@ -28,6 +28,7 @@ The generated functions use Podman with host networking and:
 - SSH key forwarding (for Git operations inside the container)
 - Configuration persistence (saves your opencode settings)
 - Authentication token sharing (so you do not need to log in again)
+- Web authentication (`occontained` requires `OPENCODE_SERVER_PASSWORD` and binds `127.0.0.1` unless you set `OPENCODE_BIND`)
 
 Reload your shell:
 
@@ -41,6 +42,13 @@ Add these functions directly to your `~/.zshrc` or `~/.bashrc` file:
 
 ```bash
 occontained() {
+  # Web mode must not start without authentication.
+  if [ -z "${OPENCODE_SERVER_PASSWORD:-}" ]; then
+    echo "ERROR: OPENCODE_SERVER_PASSWORD is not set; web mode would start with no authentication." >&2
+    echo 'Set it first:  export OPENCODE_SERVER_PASSWORD="$(openssl rand -hex 24)"' >&2
+    echo "Or add it to your shell rc file so it persists. Terminal mode needs no password: occontained_tui" >&2
+    return 1
+  fi
   podman run -d \
     --name occontained \
     --rm \
@@ -59,8 +67,8 @@ occontained() {
     -e "XDG_DATA_HOME=/home/occontained/.local/share" \
     -e "GH_TOKEN=${GH_TOKEN:-}" \
     -e "OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}" \
-    -e "OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}" \
-    ghcr.io/nikkidreams/opencode-contained:latest web --hostname 0.0.0.0 --port "${OPENCODE_PORT:-4096}"
+    -e "OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD}" \
+    ghcr.io/nikkidreams/opencode-contained:latest web --hostname "${OPENCODE_BIND:-127.0.0.1}" --port "${OPENCODE_PORT:-4096}"
 }
 
 occontained_tui() {
@@ -86,7 +94,7 @@ occontained_tui() {
 ```
 
 > [!NOTE]
-> With `--network=host`, `-p` mappings are no-ops. The web port is set on the `web` command itself (`--port`).
+> With `--network=host`, `-p` mappings are no-ops. The web port and the bind address are set on the `web` command itself (`--port`, `--hostname`). The server binds `127.0.0.1` unless you set `OPENCODE_BIND=0.0.0.0`, and `occontained` refuses to start unless `OPENCODE_SERVER_PASSWORD` is set. See [web authentication](../README.md#web-authentication).
 
 Reload your shell:
 
