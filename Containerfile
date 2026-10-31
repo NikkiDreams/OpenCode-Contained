@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
   vim \
   nano \
-  node \
+  nodejs \
   ripgrep \
   ca-certificates \
   curl \
