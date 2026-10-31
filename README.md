@@ -26,8 +26,6 @@ This is a forked version of [OpenCoded](https://github.com/brockar/opencoded) or
   - [Customize the Container Image](#customize-the-container-image)
 <!--toc:end-->
 
-![OpenCode Banner](docs/assets/banner.webp)
-
 This container runs [OpenCode](https://opencode.ai) inside Podman. You can run OpenCode in web mode or terminal mode. The container includes all dependencies and isolates your environment.
 
 ## Features
