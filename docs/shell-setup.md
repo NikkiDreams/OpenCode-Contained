@@ -49,6 +49,12 @@ occontained() {
     echo "Or add it to your shell rc file so it persists. Terminal mode needs no password: occontained_tui" >&2
     return 1
   fi
+  # Secrets are passed to podman as bare `-e NAME` (inherited from this
+  # shell's environment) instead of `-e NAME=value`: command-line values land
+  # in the podman process argv, readable by any local user through `ps`.
+  export GH_TOKEN="${GH_TOKEN:-}"
+  export OPENCODE_SERVER_USERNAME="${OPENCODE_SERVER_USERNAME:-opencode}"
+  export OPENCODE_SERVER_PASSWORD
   podman run -d \
     --name occontained \
     --rm \
@@ -65,13 +71,15 @@ occontained() {
     -e "HOME=/home/occontained" \
     -e "XDG_CONFIG_HOME=/home/occontained/.config" \
     -e "XDG_DATA_HOME=/home/occontained/.local/share" \
-    -e "GH_TOKEN=${GH_TOKEN:-}" \
-    -e "OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}" \
-    -e "OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD}" \
+    -e GH_TOKEN \
+    -e OPENCODE_SERVER_USERNAME \
+    -e OPENCODE_SERVER_PASSWORD \
     ghcr.io/nikkidreams/opencode-contained:latest web --hostname "${OPENCODE_BIND:-127.0.0.1}" --port "${OPENCODE_PORT:-4096}"
 }
 
 occontained_tui() {
+  # Same bare `-e NAME` inheritance as occontained: keep secrets out of argv.
+  export GH_TOKEN="${GH_TOKEN:-}"
   podman run -it \
     --rm \
     --name occontained-tui \
@@ -88,7 +96,7 @@ occontained_tui() {
     -e "HOME=/home/occontained" \
     -e "XDG_CONFIG_HOME=/home/occontained/.config" \
     -e "XDG_DATA_HOME=/home/occontained/.local/share" \
-    -e "GH_TOKEN=${GH_TOKEN:-}" \
+    -e GH_TOKEN \
     ghcr.io/nikkidreams/opencode-contained:latest
 }
 ```

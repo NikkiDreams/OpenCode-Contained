@@ -98,6 +98,13 @@ PROJECT_PATH=/path/to/project ~/OC_Contained/run.sh
 Run the web server container:
 
 ```bash
+# Export secrets before running so their values never appear in the podman
+# process argv (visible in `ps`) or in the command line you typed. The
+# `:?` guard stops here if no password is set.
+export GH_TOKEN="${GH_TOKEN:-}"
+export OPENCODE_SERVER_USERNAME="${OPENCODE_SERVER_USERNAME:-opencode}"
+export OPENCODE_SERVER_PASSWORD="${OPENCODE_SERVER_PASSWORD:?web mode requires a password}"
+
 podman run -d \
   --name occontained \
   --rm \
@@ -113,9 +120,9 @@ podman run -d \
   -e HOME=/home/occontained \
   -e XDG_CONFIG_HOME=/home/occontained/.config \
   -e XDG_DATA_HOME=/home/occontained/.local/share \
-  -e GH_TOKEN=${GH_TOKEN:-} \
-  -e OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode} \
-  -e OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:?web mode requires a password} \
+  -e GH_TOKEN \
+  -e OPENCODE_SERVER_USERNAME \
+  -e OPENCODE_SERVER_PASSWORD \
   ghcr.io/nikkidreams/opencode-contained:latest web --hostname "${OPENCODE_BIND:-127.0.0.1}" --port "${OPENCODE_PORT:-4096}"
 ```
 
@@ -124,7 +131,8 @@ With `--network=host`, `-p` mappings are no-ops, so the port and the bind addres
 Local LLM APIs still work with a loopback bind: host networking shares the host's loopback, so the container reaches `http://127.0.0.1:8080/v1` the same way it always did. To let another machine open the interface, bind every interface deliberately:
 
 ```bash
-OPENCODE_BIND=0.0.0.0 OPENCODE_SERVER_PASSWORD='your-password' ~/OC_Contained/run.sh
+export OPENCODE_SERVER_PASSWORD='your-password'   # avoids leaking it into `ps`
+OPENCODE_BIND=0.0.0.0 ~/OC_Contained/run.sh
 ```
 
 Anyone on your network can reach `0.0.0.0`, so keep a strong password and only set `OPENCODE_BIND` when you need it.
@@ -134,6 +142,8 @@ Anyone on your network can reach `0.0.0.0`, so keep a strong password and only s
 Run OpenCode in terminal mode:
 
 ```bash
+export GH_TOKEN="${GH_TOKEN:-}"   # keeps the token out of `ps` (argv)
+
 podman run -it \
   --rm \
   --user "$(id -u):$(id -g)" \
@@ -145,7 +155,7 @@ podman run -it \
   -e HOME=/home/occontained \
   -e XDG_CONFIG_HOME=/home/occontained/.config \
   -e XDG_DATA_HOME=/home/occontained/.local/share \
-  -e GH_TOKEN=${GH_TOKEN:-} \
+  -e GH_TOKEN \
   ghcr.io/nikkidreams/opencode-contained:latest
 ```
 
@@ -162,7 +172,9 @@ Web mode always runs behind a login, and it binds `127.0.0.1` unless you ask oth
 | `run.sh` | shell environment, or `.env` in the repository directory | prints an error and exits before creating a container |
 | `podman compose up -d` | shell environment, or `.env` in the repository directory | compose refuses with "web mode requires a password" |
 | `occontained` shell function | shell environment (export it in your rc file) | prints an error and returns 1 |
-| `podman run ... web ...` | `-e OPENCODE_SERVER_PASSWORD=...` | the documented example uses `${VAR:?...}`, so bash stops you |
+| `podman run ... web ...` | exported shell variable (the example exports it with `${VAR:?...}` before running) | bash stops you before `podman run` executes |
+
+Keep secret values out of command lines: pass podman a bare `-e OPENCODE_SERVER_PASSWORD` (podman inherits the exported value) instead of `-e OPENCODE_SERVER_PASSWORD=...`, and export variables on their own line instead of prefixing them to a command. Values written on a command line appear in the process argv, which any local user can read with `ps`, and stay in your shell history. Container environment values remain visible to `podman inspect`; that is inherent to containers, but they are no longer exposed through `ps` or history.
 
 Generate a password once and keep it out of git (`.env` is git-ignored):
 

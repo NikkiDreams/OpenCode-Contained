@@ -26,6 +26,7 @@ BIND="${OPENCODE_BIND:-127.0.0.1}"
 PROJECT_PATH="${PROJECT_PATH:-$(pwd)}"
 CONTAINER_NAME="occontained"
 IMAGE="${OC_IMAGE:-ghcr.io/nikkidreams/opencode-contained:latest}"
+SERVER_USERNAME="${OPENCODE_SERVER_USERNAME:-opencode}"
 OC_AUTH_PATH="$HOME/.local/share/opencode/auth.json"
 # Container home must be pinned explicitly: with --user (host UID not in the
 # image's /etc/passwd) the container HOME falls back to "/", so OpenCode's
@@ -50,6 +51,16 @@ if [ -z "${OPENCODE_SERVER_PASSWORD:-}" ]; then
   echo -e "Terminal mode needs no password: ${CYAN}podman run -it --rm <image>${NC} or ${CYAN}occontained_tui${NC}." >&2
   exit 1
 fi
+
+# Pass secrets to podman as bare `-e NAME` (inherit from the environment)
+# instead of `-e NAME=value`. Values written on the command line land in the
+# podman process argv, which any local user can read through `ps`, and they
+# linger in shell history when typed inline. Exporting keeps the values in
+# this shell's environment only. (They remain visible in `podman inspect`;
+# that is inherent to containers and not reachable from `ps`.)
+export GH_TOKEN="${GH_TOKEN:-}"
+export OPENCODE_SERVER_USERNAME="$SERVER_USERNAME"
+export OPENCODE_SERVER_PASSWORD
 
 echo -e "${BLUE}Setting up OpenCode Container environment...${NC}"
 mkdir -p ~/.config/opencode
@@ -88,7 +99,7 @@ echo -e "${BLUE}Starting OpenCode container on port $PORT...${NC}"
 # and the internet directly. With host networking, "-p" mappings are no-ops, so
 # both the port and the bind address are controlled here, on the server command.
 if [ "$BIND" != "127.0.0.1" ] && [ "$BIND" != "localhost" ]; then
-  echo -e "${YELLOW}WARNING: OPENCODE_BIND=$BIND exposes the web UI on your network. Anyone on the LAN can reach it (log in as ${OPENCODE_SERVER_USERNAME:-opencode}).${NC}"
+  echo -e "${YELLOW}WARNING: OPENCODE_BIND=$BIND exposes the web UI on your network. Anyone on the LAN can reach it (log in as $SERVER_USERNAME).${NC}"
 fi
 
 podman run -d \
@@ -107,9 +118,9 @@ podman run -d \
   -e "HOME=${CONTAINER_HOME}" \
   -e "XDG_CONFIG_HOME=${CONTAINER_HOME}/.config" \
   -e "XDG_DATA_HOME=${CONTAINER_HOME}/.local/share" \
-  -e "GH_TOKEN=${GH_TOKEN:-}" \
-  -e "OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}" \
-  -e "OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}" \
+  -e GH_TOKEN \
+  -e OPENCODE_SERVER_USERNAME \
+  -e OPENCODE_SERVER_PASSWORD \
   "$IMAGE" web --hostname "$BIND" --port "$PORT"
 
 echo ""
@@ -120,7 +131,7 @@ if [ "$BIND" = "127.0.0.1" ] || [ "$BIND" = "localhost" ]; then
 else
   echo -e "Access the web interface at: ${CYAN}http://$BIND:$PORT${NC}"
 fi
-echo -e "Login with username ${CYAN}${OPENCODE_SERVER_USERNAME:-opencode}${NC} and your ${CYAN}OPENCODE_SERVER_PASSWORD${NC}"
+echo -e "Login with username ${CYAN}$SERVER_USERNAME${NC} and your ${CYAN}OPENCODE_SERVER_PASSWORD${NC}"
 echo ""
 echo -e "${BLUE}Useful commands:${NC}"
 echo -e "  ${CYAN}podman logs -f $CONTAINER_NAME${NC}  - View logs"
