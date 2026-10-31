@@ -2,7 +2,7 @@
 
 ## Forked and Updated for Podman and Local Inference
 
-This is a forked version of [OpenCoded](https://github.com/brockar/opencoded) originally by Martin Guzman. This fork is refactored to run OpenCode in a Podman container using local models provided by a Local LLM Runtime like Strata, Ollama, LM Studio, llama.cpp or any LLM Runtime with a local API. Your models, your private environments. You can use easily use abliterated models (not recommended)) if you are really trying to be the "edgy". And ZERO tokens sucking the life out of your bank account. However if you need remote models or cannot run an LLM localy, this option is still available.
+This is a forked version of [OpenCoded](https://github.com/brockar/opencoded) originally by Martin Guzman. This fork is refactored to run OpenCode in a Podman container using local models provided by a Local LLM Runtime like Strata, Ollama, LM Studio, llama.cpp or any LLM Runtime with a local API. Your models, your private environments. You can use easily use abliterated models (not recommended)) if you are really trying to be the "edgy". And ZERO tokens sucking the life out of your bank account. However if you need remote models or cannot run an LLM localy, this option is still available. Note: this project is tailored to runnig OpenCode with Strata. This is a great option for people with GPUs that only have 16-24+ GiB vRAM.
 
 <!--toc:start-->
 - [OpenCode Contained Development Environment](#opencode-contained-development-environment)
@@ -167,12 +167,12 @@ This command starts the terminal interface. Press `Ctrl+C` or type `/exit` to st
 
 Web mode always runs behind a login, and it binds `127.0.0.1` unless you ask otherwise. `OPENCODE_SERVER_PASSWORD` has no default, so every entry point stops before starting an open server:
 
-| Entry point | Where the password comes from | Behaviour when unset |
-| --- | --- | --- |
-| `run.sh` | shell environment, or `.env` in the repository directory | prints an error and exits before creating a container |
-| `podman compose up -d` | shell environment, or `.env` in the repository directory | compose refuses with "web mode requires a password" |
-| `occontained` shell function | shell environment (export it in your rc file) | prints an error and returns 1 |
-| `podman run ... web ...` | exported shell variable (the example exports it with `${VAR:?...}` before running) | bash stops you before `podman run` executes |
+| Entry point                  | Where the password comes from                                                      | Behaviour when unset                                  |
+| ---------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `run.sh`                     | shell environment, or `.env` in the repository directory                           | prints an error and exits before creating a container |
+| `podman compose up -d`       | shell environment, or `.env` in the repository directory                           | compose refuses with "web mode requires a password"   |
+| `occontained` shell function | shell environment (export it in your rc file)                                      | prints an error and returns 1                         |
+| `podman run ... web ...`     | exported shell variable (the example exports it with `${VAR:?...}` before running) | bash stops you before `podman run` executes           |
 
 Keep secret values out of command lines: pass podman a bare `-e OPENCODE_SERVER_PASSWORD` (podman inherits the exported value) instead of `-e OPENCODE_SERVER_PASSWORD=...`, and export variables on their own line instead of prefixing them to a command. Values written on a command line appear in the process argv, which any local user can read with `ps`, and stay in your shell history. Container environment values remain visible to `podman inspect`; that is inherent to containers, but they are no longer exposed through `ps` or history.
 
@@ -192,14 +192,14 @@ Log in with `OPENCODE_SERVER_USERNAME` (default `opencode`) and that password. T
 
 ### Helper Script Environment Variables
 
-| Variable        | Description                     | Default    |
-| --------------- | ------------------------------- | ---------- |
-| `PROJECT_PATH`  | Path to project directory       | `$(pwd)`   |
-| `OPENCODE_PORT` | Host port to expose             | `4096`     |
-| `OPENCODE_BIND` | Web UI bind address (`127.0.0.1` keeps it localhost only) | `127.0.0.1` |
-| `OC_IMAGE`      | Container image to run          | `ghcr.io/nikkidreams/opencode-contained:latest` |
-| `CUSTOM_UID`    | User ID for file permissions    | `$(id -u)` |
-| `CUSTOM_GID`    | Group ID for file permissions   | `$(id -g)` |
+| Variable        | Description                                               | Default                                         |
+| --------------- | --------------------------------------------------------- | ----------------------------------------------- |
+| `PROJECT_PATH`  | Path to project directory                                 | `$(pwd)`                                        |
+| `OPENCODE_PORT` | Host port to expose                                       | `4096`                                          |
+| `OPENCODE_BIND` | Web UI bind address (`127.0.0.1` keeps it localhost only) | `127.0.0.1`                                     |
+| `OC_IMAGE`      | Container image to run                                    | `ghcr.io/nikkidreams/opencode-contained:latest` |
+| `CUSTOM_UID`    | User ID for file permissions                              | `$(id -u)`                                      |
+| `CUSTOM_GID`    | Group ID for file permissions                             | `$(id -g)`                                      |
 
 ### Volume Mounts
 
@@ -230,10 +230,10 @@ The example commands set `HOME`, `XDG_CONFIG_HOME`, and `XDG_DATA_HOME` to `/hom
 
 ### Environment Variables
 
-| Variable                   | Description                               | Default    |
-| -------------------------- | ----------------------------------------- | ---------- |
-| `GH_TOKEN`                 | GitHub token (optional)                   | -          |
-| `OPENCODE_SERVER_USERNAME` | Username for web interface authentication | `opencode` |
+| Variable                   | Description                               | Default                   |
+| -------------------------- | ----------------------------------------- | ------------------------- |
+| `GH_TOKEN`                 | GitHub token (optional)                   | -                         |
+| `OPENCODE_SERVER_USERNAME` | Username for web interface authentication | `opencode`                |
 | `OPENCODE_SERVER_PASSWORD` | Password for web interface authentication | **required for web mode** |
 
 ## Shell Alias
