@@ -1,46 +1,75 @@
 {
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "strata": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Strata (local)",
-      "options": {
-        "baseURL": "http://127.0.0.1:8080/v1"
-      },
-      "models": {
-        "qwen3.8-flash-next-iq2_xs": {
-          "name": "Qwen3.8 Flash Next (local)"
+    "$schema": "https://opencode.ai/config.json",
+    "model": "strata/swift-1.5-iq3_xxs",
+    "small_model": "strata/swift-1.5-iq3_xxs",
+    "autoupdate": false,
+    "compaction": {
+        "auto": true,
+        "buffer": 60548
+    },
+    "share": "disabled",
+    "provider": {
+        "strata": {
+            "npm": "@ai-sdk/openai-compatible",
+            "name": "Strata (local)",
+            "options": {
+                "baseURL": "http://127.0.0.1:8080/v1",
+                "apiKey": "{env:STRATA_API_KEY)}"
+            },
+            "models": {
+                "swift-1.5-iq3_xxs": {
+                    "name": "Swift 1.5 iq3_xxs(local)",
+                    "tool_call": true,
+                    "reasoning": true,
+                    "limit": {
+                        "context": 131072,
+                        "input": 126976,
+                        "output": 4096
+                    }
+                },
+                "qwen3.8-flash-next-coder-iq1_m": {
+                    "name": "Qwen3.8 iq1_m Coder (local)",
+                    "tool_call": true,
+                    "reasoning": true,
+                    "limit": {
+                        "context": 131072,
+                        "input": 126976,
+                        "output": 4096
+                    }
+                },
+                "qwen3.8-flash-next-iq3_xxs": {
+                    "name": "Qwen3.8-Flash-Next (local)",
+                    "tool_call": true,
+                    "reasoning": true,
+                    "limit": {
+                        "context": 131072,
+                        "input": 126976,
+                        "output": 4096
+                    }
+                }
+            }
         }
-      }
-    }
-  },
-  "permission": {
-    "bash": {
-      "*": "allow",
-      "git push *": "ask"
     },
-    "edit": "allow",
-    "websearch": "deny"
-  },
-  "plugin": [
-    "superpowers@git+https://github.com/obra/superpowers.git"
-  ],
-  "mcp": {
-    "context7": {
-      "type": "remote",
-      "url": "https://mcp.context7.com/mcp",
-      "oauth": false,
-      "headers": {
-        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
-      }
-    },
-    "github": {
-      "type": "remote",
-      "url": "https://api.githubcopilot.com/mcp/",
-      "oauth": false,
-      "headers": {
-        "Authorization": "Bearer {env:GH_TOKEN}"
-      }
+    "plugins": [
+        "superpowers@git+https://github.com/obra/superpowers.git"
+    ],
+    "mcp": {
+        "servers": {
+            "context7": {
+                "type": "remote",
+                "url": "https://mcp.context7.com/mcp",
+                "oauth": false,
+                "headers": {
+                    "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}",
+                }
+            },
+            "github": {
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-github"
+                ]
+            }
+        }
     }
-  }
 }
